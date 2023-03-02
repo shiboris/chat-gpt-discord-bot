@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace ChatGpt;
 
+use ChatGpt\Database\Database;
 use Discord\Discord;
 use Discord\Parts\Channel\Message;
 use Discord\WebSockets\Event;
@@ -13,28 +14,37 @@ class ChatGpt extends Discord
     protected const MESSAGE_PREFIX = 'ai:';
     protected const API_URL = 'https://api.openai.com/v1/completions';
     protected Client $_client;
+    protected Database $_database;
 
     /**
      * @inheritDoc
      */
     public function __construct(array $options = [])
     {
+        $apiToken = $options['apiToken'];
+        unset($options['apiToken']);
+        parent::__construct($options);
+
         $this->_client = new Client([
             'headers' => [
                 'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $options['apiToken'],
+                'Authorization' => 'Bearer ' . $apiToken,
             ],
         ]);
 
-        unset($options['apiToken']);
-
-        parent::__construct($options);
+        $this->_database = new Database();
 
         $this->on('ready', function (): void {
             $this->on(Event::MESSAGE_CREATE, function (Message $message): void {
                 $messageContent = $this->_checkMessage($message);
                 echo $messageContent;
                 if ($messageContent === false) {
+                    return;
+                }
+
+                if (!$this->_database->check()) {
+                    $this->getChannel($message->channel_id)->sendMessage('連続で送り過ぎや');
+
                     return;
                 }
 
