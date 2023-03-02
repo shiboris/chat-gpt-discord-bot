@@ -3,16 +3,11 @@
     "type": "project",
     "autoload": {
         "psr-4": {
-            "Taniwhy\\ChatGptDiscordBot\\": "src/"
+            "ChatGpt\\": "src/"
         }
     },
-    "authors": [
-        {
-            "name": "taniwhy",
-            "email": "tanitani628@gmail.com"
-        }
-    ],
     "require": {
-        "team-reflex/discord-php": "^7.3"
+        "team-reflex/discord-php": "^7.3",
+        "guzzlehttp/guzzle": "^7.5"
     }
 }
