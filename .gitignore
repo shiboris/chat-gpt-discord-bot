@@ -1,5 +1,4 @@
-node_modules
-.vscode
-build
+/vendor/
+chat_gpt.db
 .env
-vendor
+chat_gpt.sqlite3

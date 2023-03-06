@@ -1,0 +1,15 @@
+{
+    "name": "taniwhy/chat-gpt-discord-bot",
+    "autoload": {
+        "psr-4": {
+            "ChatGpt\\": "src/"
+        }
+    },
+    "require": {
+        "team-reflex/discord-php": "^7.3",
+        "guzzlehttp/guzzle": "^7.5",
+        "vlucas/phpdotenv": "^5.5",
+        "illuminate/database": "^10.2",
+        "robmorgan/phinx": "^0.13.4"
+    }
+}
