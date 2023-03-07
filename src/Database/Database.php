@@ -30,7 +30,7 @@ class Database extends SQLite3
     }
 
     /**
-     * @return void
+     * @return bool
      */
     public function checkExecutable(): bool
     {
@@ -48,7 +48,7 @@ class Database extends SQLite3
         $operatingStatus = $operatingStatusTable->get()->first();
         $lastBootTime = new DateTime($operatingStatus->last_boot_time);
 
-        if ((new DateTime())->modify('-3 Seconds') < $lastBootTime) {
+        if ((new DateTime())->modify('-5 Seconds') < $lastBootTime) {
             return false;
         }
 
@@ -57,5 +57,88 @@ class Database extends SQLite3
             ->update(['last_boot_time' => new DateTime()]);
 
         return true;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getPersonality(): ?string
+    {
+        $operatingStatusTable = Manager::table('operating_status');
+
+        if (!$operatingStatusTable->exists()) {
+            return null;
+        }
+
+        $operatingStatus = $operatingStatusTable->get()->first();
+        $personality = $operatingStatus->personality;
+
+        if (!is_string($personality)) {
+            return null;
+        }
+
+        return $personality;
+    }
+
+    /**
+     * @param string $personality
+     * @return void
+     */
+    public function setPersonality(string $personality): void
+    {
+        $operatingStatusTable = Manager::table('operating_status');
+
+        if (!$operatingStatusTable->exists()) {
+            $values = [
+                'last_boot_time' => new DateTime(),
+                'personality' => $personality,
+            ];
+            $operatingStatusTable->insert($values);
+
+            return;
+        }
+
+        $operatingStatus = $operatingStatusTable->get()->first();
+        $operatingStatusTable
+            ->where('id', '=', $operatingStatus->id)
+            ->update(['personality' => $personality]);
+    }
+
+    /**
+     * @return array
+     */
+    public function getConversationHistories(): array
+    {
+        $conversationHistoriesTable = Manager::table('conversation_histories');
+
+        if (!$conversationHistoriesTable->exists()) {
+            return [];
+        }
+
+        $conversationHistories = $conversationHistoriesTable
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get()
+            ->sortBy('id')
+            ->all();
+
+        return $conversationHistories;
+    }
+
+    /**
+     * @return void
+     */
+    public function saveConversationHistories(array $conversations): void
+    {
+        $conversationHistoriesTable = Manager::table('conversation_histories');
+
+        foreach ($conversations as $conversation) {
+            $values = [
+                'role' => $conversation['role'],
+                'content' => $conversation['content'],
+                'created' => new DateTime(),
+            ];
+            $conversationHistoriesTable->insert($values);
+        }
     }
 }

@@ -11,9 +11,5 @@ if (file_exists(__DIR__ . '/.env')) {
     $dotenv->load();
 }
 
-$chatGpt = new ChatGpt([
-    'token' => $_ENV['DISCORD_BOT_TOKEN'],
-    'apiToken' => $_ENV['CHATGPT_API_TOKEN'],
-]);
-
+$chatGpt = new ChatGpt($_ENV['DISCORD_BOT_TOKEN'], $_ENV['CHATGPT_API_TOKEN']);
 $chatGpt->run();
