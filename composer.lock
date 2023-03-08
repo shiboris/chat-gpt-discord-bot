@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c159e8f317f2a309c1504eee3d420324",
+    "content-hash": "93df6c3c8afa3e36d05485f1c43e575c",
     "packages": [
         {
             "name": "brick/math",
@@ -980,7 +980,7 @@
         },
         {
             "name": "illuminate/collections",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/collections.git",
@@ -1035,7 +1035,7 @@
         },
         {
             "name": "illuminate/conditionable",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/conditionable.git",
@@ -1081,7 +1081,7 @@
         },
         {
             "name": "illuminate/container",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/container.git",
@@ -1132,7 +1132,7 @@
         },
         {
             "name": "illuminate/contracts",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/contracts.git",
@@ -1180,16 +1180,16 @@
         },
         {
             "name": "illuminate/database",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/database.git",
-                "reference": "851046b8ee2dd24453e08bbe082e7ba172d69470"
+                "reference": "dbff41a91018f04ef0303addf0f017e100ef226c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/illuminate/database/zipball/851046b8ee2dd24453e08bbe082e7ba172d69470",
-                "reference": "851046b8ee2dd24453e08bbe082e7ba172d69470",
+                "url": "https://api.github.com/repos/illuminate/database/zipball/dbff41a91018f04ef0303addf0f017e100ef226c",
+                "reference": "dbff41a91018f04ef0303addf0f017e100ef226c",
                 "shasum": ""
             },
             "require": {
@@ -1245,11 +1245,11 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2023-03-02T14:29:55+00:00"
+            "time": "2023-03-06T19:57:42+00:00"
         },
         {
             "name": "illuminate/macroable",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/macroable.git",
@@ -1295,16 +1295,16 @@
         },
         {
             "name": "illuminate/support",
-            "version": "v10.2.0",
+            "version": "v10.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/support.git",
-                "reference": "2b2f74449a7b95fbbfaeb26399cc5e1df85a96fa"
+                "reference": "d64c44a2960742ddff150f9a8b22dd64236bc057"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/illuminate/support/zipball/2b2f74449a7b95fbbfaeb26399cc5e1df85a96fa",
-                "reference": "2b2f74449a7b95fbbfaeb26399cc5e1df85a96fa",
+                "url": "https://api.github.com/repos/illuminate/support/zipball/d64c44a2960742ddff150f9a8b22dd64236bc057",
+                "reference": "d64c44a2960742ddff150f9a8b22dd64236bc057",
                 "shasum": ""
             },
             "require": {
@@ -1362,7 +1362,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2023-03-02T14:29:55+00:00"
+            "time": "2023-03-06T01:15:38+00:00"
         },
         {
             "name": "mollie/polyfill-libsodium",
@@ -1613,6 +1613,65 @@
                 }
             ],
             "time": "2023-01-29T18:53:47+00:00"
+        },
+        {
+            "name": "orhanerday/open-ai",
+            "version": "4.7.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/orhanerday/open-ai.git",
+                "reference": "d2d96d0521ef3118cc4f33a5d54718b62aedd336"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/orhanerday/open-ai/zipball/d2d96d0521ef3118cc4f33a5d54718b62aedd336",
+                "reference": "d2d96d0521ef3118cc4f33a5d54718b62aedd336",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=7.4"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "pestphp/pest": "^1.20",
+                "spatie/ray": "^1.28"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Orhanerday\\OpenAi\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Orhan Erday",
+                    "email": "orhanerday@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "OpenAI GPT-3 Api Client in PHP",
+            "homepage": "https://github.com/orhanerday/open-ai",
+            "keywords": [
+                "open-ai",
+                "orhanerday"
+            ],
+            "support": {
+                "issues": "https://github.com/orhanerday/open-ai/issues",
+                "source": "https://github.com/orhanerday/open-ai/tree/4.7.1"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/orhanerday",
+                    "type": "github"
+                }
+            ],
+            "time": "2023-03-08T08:04:02+00:00"
         },
         {
             "name": "phpoption/phpoption",
@@ -3220,6 +3279,59 @@
                 "source": "https://github.com/cakephp/phinx/tree/0.13.4"
             },
             "time": "2023-01-07T00:42:55+00:00"
+        },
+        {
+            "name": "shimabox/pemojine",
+            "version": "v0.6.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/shimabox/pemojine.git",
+                "reference": "60cdc92ca6c7c2ec2597649f92e2e6f5ac684271"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/shimabox/pemojine/zipball/60cdc92ca6c7c2ec2597649f92e2e6f5ac684271",
+                "reference": "60cdc92ca6c7c2ec2597649f92e2e6f5ac684271",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.5"
+            },
+            "require-dev": {
+                "codeclimate/php-test-reporter": "dev-master",
+                "electrolinux/phpquery": "^0.9.6",
+                "league/climate": "^3.2 || ^3.4",
+                "philo/laravel-blade": "3.*",
+                "phpunit/phpunit": "~4.8 || ~5.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SMB\\Pemojine\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "shimabox",
+                    "email": "shimabox@gmail.com"
+                }
+            ],
+            "description": "Pemojine is a library for handling Emoji in PHP.",
+            "homepage": "https://github.com/shimabox/pemojine",
+            "keywords": [
+                "converter",
+                "emoji",
+                "random"
+            ],
+            "support": {
+                "issues": "https://github.com/shimabox/pemojine/issues",
+                "source": "https://github.com/shimabox/pemojine/tree/v0.6.5"
+            },
+            "time": "2020-12-20T05:32:35+00:00"
         },
         {
             "name": "symfony/config",

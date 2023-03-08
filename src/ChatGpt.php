@@ -8,17 +8,21 @@ use Discord\Discord;
 use Discord\Parts\Channel\Message;
 use Discord\WebSockets\Event;
 use Exception;
-use GuzzleHttp\Client;
+use Orhanerday\OpenAi\OpenAi;
+use SMB\Pemojine\Container;
+use SMB\Pemojine\Structure\Vendor\Common;
 
 class ChatGpt extends Discord
 {
-    protected const MESSAGE_PREFIX = 'ai ';
-    protected const API_URL = 'https://api.openai.com/v1/chat/completions';
-
     protected const FUNC_TYPE_CALL_API = 'call_api';
     protected const FUNC_TYPE_SET_PERSONARITY = 'set_personality';
+    protected const FUNC_TYPE_RESET = 'reset';
 
-    protected Client $_client;
+    protected const FUNC_PREFIX_CALL_API = 'ai ';
+    protected const FUNC_PREFIX_SET_PERSONARITY = 'ai set personality ';
+    protected const FUNC_PREFIX_RESET = 'ai reset';
+
+    protected OpenAi $_openAi;
     protected Database $_database;
 
     /**
@@ -28,132 +32,137 @@ class ChatGpt extends Discord
     {
         parent::__construct(['token' => $discordToken]);
 
-        $this->_client = new Client([
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $chatGptToken,
-            ],
-        ]);
-
+        $this->_openAi = new OpenAi($chatGptToken);
         $this->_database = new Database();
 
         $this->on('ready', function (): void {
             $this->on(Event::MESSAGE_CREATE, function (Message $message): void {
-                if ($this->_checkMessage($message) === false) {
+                // ボットのメッセージはスルー
+                if ($message->author->bot) {
+                    return;
+                }
+
+                // メッセージ内容から機能種類を選ぶ
+                // 該当の機能がなければスルー
+                $funcType = $this->_selectFuncType($message);
+                if ($funcType === null) {
                     return;
                 }
 
                 $channel = $this->getChannel($message->channel_id);
 
+                // 実行可能な状態かチェック
                 if (!$this->_database->checkExecutable()) {
                     $channel->sendMessage('ちょっとまってね');
 
                     return;
                 }
 
-                $resultMessage = match ($this->_selectFuncType($message)) {
-                    self::FUNC_TYPE_CALL_API => $this->_callApi($message),
-                    self::FUNC_TYPE_SET_PERSONARITY => $this->_setPersonality($message),
-                };
+                // ランダムな絵文字をつける
+                $pemojine = Container::make(new Common());
+                $selectedGroup = $pemojine->randomFromGroup();
+                $message->react($selectedGroup->output());
 
-                $channel->sendMessage($resultMessage);
+                // 入力中...を通知して機能ごとの処理を実行する
+                $channel->broadcastTyping()->done(
+                    function () use ($channel, $funcType, $message): void {
+                        $resultMessage = match ($funcType) {
+                            self::FUNC_TYPE_CALL_API => $this->_callApi($message),
+                            self::FUNC_TYPE_SET_PERSONARITY => $this->_setPersonality($message),
+                            self::FUNC_TYPE_RESET => $this->_resetConversationHistories(),
+                            default => "想定外のコマンドが指定されました : {$funcType}"
+                        };
+
+                        $channel->sendMessage($resultMessage);
+                    }
+                );
             });
         });
     }
 
     /**
      * @param \Discord\Parts\Channel\Message $message
-     * @return bool
+     * @return ?string
      */
-    protected function _checkMessage(Message $message): bool
+    protected function _selectFuncType(Message $message): ?string
     {
-        if ($message->author->bot) {
-            return false;
-        }
-
-        $messageContent = $message->content;
-        if (!str_starts_with($messageContent, self::MESSAGE_PREFIX)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * @param \Discord\Parts\Channel\Message $message
-     * @return string|false
-     */
-    protected function _selectFuncType(Message $message): string|false
-    {
-        $messageContent = $message->content;
-
-        if (str_starts_with($messageContent, 'ai set personality ')) {
-            return self::FUNC_TYPE_SET_PERSONARITY;
-        }
-
-        return self::FUNC_TYPE_CALL_API;
-    }
-
-    /**
-     * @param \Discord\Parts\Channel\Message $message
-     * @return string|null
-     */
-    protected function _callApi(Message $message): string|false
-    {
+        $funcType = null;
         $content = $message->content;
-        $message = (string)str_replace(self::MESSAGE_PREFIX, '', $content);
-        $messages = [];
+
+        if (str_starts_with($content, self::FUNC_PREFIX_CALL_API)) {
+            $funcType = self::FUNC_TYPE_CALL_API;
+        }
+        if (str_starts_with($content, self::FUNC_PREFIX_SET_PERSONARITY)) {
+            $funcType = self::FUNC_TYPE_SET_PERSONARITY;
+        }
+        if (str_starts_with($content, self::FUNC_PREFIX_RESET)) {
+            $funcType = self::FUNC_TYPE_RESET;
+        }
+
+        return $funcType;
+    }
+
+    /**
+     * @param \Discord\Parts\Channel\Message $message
+     * @return string
+     */
+    protected function _callApi(Message $message): string
+    {
+        $userMessage = ltrim($message->content, self::FUNC_PREFIX_CALL_API);
+        $requestMessages = [];
 
         $conversationHistories = $this->_database->getConversationHistories();
         if (!empty($conversationHistories)) {
             foreach ($conversationHistories as $conversationHistory) {
-                $messages[] = [
+                $requestMessages[] = [
                     'role' => $conversationHistory->role,
                     'content' => $conversationHistory->content,
                 ];
             }
         }
 
-        $messages[] = [
+        $requestMessages[] = [
             'role' => 'user',
-            'content' => $message,
+            'content' => $userMessage,
         ];
 
         $personality = $this->_database->getPersonality();
         if (!empty($personality)) {
-            $messages[] = [
+            $requestMessages[] = [
                 'role' => 'system',
                 'content' => $personality,
             ];
         }
 
         try {
-            $response = $this->_client->post(self::API_URL, [
-                'json' => [
-                    'model' => 'gpt-3.5-turbo',
-                    'messages' => $messages,
-                    'max_tokens' => 500,
-                ],
+            $response = $this->_openAi->chat([
+                'model' => 'gpt-3.5-turbo',
+                'messages' => $requestMessages,
+                'max_tokens' => 500,
             ]);
-        } catch (Exception) {
-            return 'サーバーエラー';
+        } catch (Exception $e) {
+            return "サーバーエラー : {$e->getMessage()}";
         }
 
-        $result = json_decode($response->getBody()->getContents(), true);
+        $result = json_decode($response, true);
+        if (!isset($result['choices'][0]['message']['content'])) {
+            $result = print_r($result, true);
+
+            return "想定外のレスポンス : {$result}";
+        }
+
         $resultMessage = $result['choices'][0]['message']['content'];
 
-        $conversation = [
+        $this->_database->saveConversationHistories([
             [
                 'role' => 'user',
-                'content' => $message,
+                'content' => $userMessage,
             ],
             [
                 'role' => 'assistant',
                 'content' => $resultMessage,
             ],
-        ];
-
-        $this->_database->saveConversationHistories($conversation);
+        ]);
 
         return (string)$resultMessage;
     }
@@ -164,11 +173,21 @@ class ChatGpt extends Discord
      */
     protected function _setPersonality(Message $message): string
     {
-        $content = $message->content;
-        $personality = (string)str_replace('ai set personality ', '', $content);
+        $personality = ltrim($message->content, self::FUNC_PREFIX_SET_PERSONARITY);
         $this->_database->setPersonality($personality);
         $this->_personality = $personality;
 
         return '設定完了しました。';
+    }
+
+    /**
+     * @param \Discord\Parts\Channel\Message $message
+     * @return string
+     */
+    protected function _resetConversationHistories(): string
+    {
+        $this->_database->resetConversationHistories();
+
+        return '文脈をリセットしました。';
     }
 }

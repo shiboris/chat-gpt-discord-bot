@@ -117,7 +117,7 @@ class Database extends SQLite3
 
         $conversationHistories = $conversationHistoriesTable
             ->orderByDesc('id')
-            ->limit(20)
+            ->limit(6)
             ->get()
             ->sortBy('id')
             ->all();
@@ -140,5 +140,14 @@ class Database extends SQLite3
             ];
             $conversationHistoriesTable->insert($values);
         }
+    }
+
+    /**
+     * @return void
+     */
+    public function resetConversationHistories(): void
+    {
+        $conversationHistoriesTable = Manager::table('conversation_histories');
+        $conversationHistoriesTable->delete();
     }
 }

@@ -10,6 +10,8 @@
         "guzzlehttp/guzzle": "^7.5",
         "vlucas/phpdotenv": "^5.5",
         "illuminate/database": "^10.2",
-        "robmorgan/phinx": "^0.13.4"
+        "robmorgan/phinx": "^0.13.4",
+        "orhanerday/open-ai": "^4.6",
+        "shimabox/pemojine": "^0.6.5"
     }
 }

@@ -1,0 +1,9 @@
+services:
+  bot:
+    container_name: bot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./:/user/src/app/
+    stdin_open: true
