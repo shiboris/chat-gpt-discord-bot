@@ -6,16 +6,22 @@ up:
 	docker compose up --build -d
 
 install:
-	docker-compose run $(CONTAINER_NAME_BOT) sh -c "composer install"
+	docker-compose exec $(CONTAINER_NAME_BOT) sh -c "composer install"
 
 migration:
-	docker-compose run $(CONTAINER_NAME_BOT) sh -c "vendor/bin/phinx migrate"
+	docker-compose exec $(CONTAINER_NAME_BOT) sh -c "vendor/bin/phinx migrate"
 
 start:
-	docker-compose run $(CONTAINER_NAME_BOT) sh -c "php bot.php"
+	docker-compose exec $(CONTAINER_NAME_BOT) sh -c "php bot.php"
 
 all:
 	make up
 	make install
 	make migration
 	make start
+
+cs:
+	docker compose exec $(CONTAINER_NAME_BOT) composer cs-check
+
+cbf:
+	docker compose exec $(CONTAINER_NAME_BOT) composer cs-fix

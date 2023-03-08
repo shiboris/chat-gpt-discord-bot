@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  cs:
+    name: Coding Standard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Composer Install
+        working-directory: .
+        run: composer require squizlabs/php_codesniffer
+
+      - name: Run phpcs
+        working-directory: .
+        run: vendor/bin/phpcs --report=checkstyle --standard=PSR12 src/ bot.php

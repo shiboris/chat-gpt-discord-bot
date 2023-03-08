@@ -13,5 +13,12 @@
         "robmorgan/phinx": "^0.13.4",
         "orhanerday/open-ai": "^4.6",
         "shimabox/pemojine": "^0.6.5"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.7"
+    },
+    "scripts": {
+        "cs-check": "phpcs --colors -p --standard=PSR12 src/ bot.php",
+        "cs-fix": "phpcbf --colors -p --standard=PSR12 src/ bot.php"
     }
 }

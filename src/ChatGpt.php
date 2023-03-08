@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ChatGpt;
@@ -12,6 +13,9 @@ use Orhanerday\OpenAi\OpenAi;
 use SMB\Pemojine\Container;
 use SMB\Pemojine\Structure\Vendor\Common;
 
+/**
+ * ChatGpt
+ */
 class ChatGpt extends Discord
 {
     protected const FUNC_TYPE_CALL_API = 'call_api';
@@ -22,8 +26,10 @@ class ChatGpt extends Discord
     protected const FUNC_PREFIX_SET_PERSONARITY = 'ai set personality ';
     protected const FUNC_PREFIX_RESET = 'ai reset';
 
-    protected OpenAi $_openAi;
-    protected Database $_database;
+    protected OpenAi $openAi;
+    protected Database $database;
+
+    protected string $personality;
 
     /**
      * @inheritDoc
@@ -32,8 +38,10 @@ class ChatGpt extends Discord
     {
         parent::__construct(['token' => $discordToken]);
 
-        $this->_openAi = new OpenAi($chatGptToken);
-        $this->_database = new Database();
+        $this->openAi = new OpenAi($chatGptToken);
+        $this->database = new Database();
+
+        $this->personality = $this->database->getPersonality();
 
         $this->on('ready', function (): void {
             $this->on(Event::MESSAGE_CREATE, function (Message $message): void {
@@ -44,7 +52,7 @@ class ChatGpt extends Discord
 
                 // メッセージ内容から機能種類を選ぶ
                 // 該当の機能がなければスルー
-                $funcType = $this->_selectFuncType($message);
+                $funcType = $this->selectFuncType($message);
                 if ($funcType === null) {
                     return;
                 }
@@ -52,7 +60,7 @@ class ChatGpt extends Discord
                 $channel = $this->getChannel($message->channel_id);
 
                 // 実行可能な状態かチェック
-                if (!$this->_database->checkExecutable()) {
+                if (!$this->database->checkExecutable()) {
                     $channel->sendMessage('ちょっとまってね');
 
                     return;
@@ -67,9 +75,9 @@ class ChatGpt extends Discord
                 $channel->broadcastTyping()->done(
                     function () use ($channel, $funcType, $message): void {
                         $resultMessage = match ($funcType) {
-                            self::FUNC_TYPE_CALL_API => $this->_callApi($message),
-                            self::FUNC_TYPE_SET_PERSONARITY => $this->_setPersonality($message),
-                            self::FUNC_TYPE_RESET => $this->_resetConversationHistories(),
+                            self::FUNC_TYPE_CALL_API => $this->callApi($message),
+                            self::FUNC_TYPE_SET_PERSONARITY => $this->setPersonality($message),
+                            self::FUNC_TYPE_RESET => $this->resetConversationHistories(),
                             default => "想定外のコマンドが指定されました : {$funcType}"
                         };
 
@@ -84,7 +92,7 @@ class ChatGpt extends Discord
      * @param \Discord\Parts\Channel\Message $message
      * @return ?string
      */
-    protected function _selectFuncType(Message $message): ?string
+    protected function selectFuncType(Message $message): ?string
     {
         $funcType = null;
         $content = $message->content;
@@ -106,12 +114,12 @@ class ChatGpt extends Discord
      * @param \Discord\Parts\Channel\Message $message
      * @return string
      */
-    protected function _callApi(Message $message): string
+    protected function callApi(Message $message): string
     {
         $userMessage = ltrim($message->content, self::FUNC_PREFIX_CALL_API);
         $requestMessages = [];
 
-        $conversationHistories = $this->_database->getConversationHistories();
+        $conversationHistories = $this->database->getConversationHistories();
         if (!empty($conversationHistories)) {
             foreach ($conversationHistories as $conversationHistory) {
                 $requestMessages[] = [
@@ -126,16 +134,15 @@ class ChatGpt extends Discord
             'content' => $userMessage,
         ];
 
-        $personality = $this->_database->getPersonality();
-        if (!empty($personality)) {
+        if ($this->personality) {
             $requestMessages[] = [
                 'role' => 'system',
-                'content' => $personality,
+                'content' => $this->personality,
             ];
         }
 
         try {
-            $response = $this->_openAi->chat([
+            $response = $this->openAi->chat([
                 'model' => 'gpt-3.5-turbo',
                 'messages' => $requestMessages,
                 'max_tokens' => 500,
@@ -153,7 +160,7 @@ class ChatGpt extends Discord
 
         $resultMessage = $result['choices'][0]['message']['content'];
 
-        $this->_database->saveConversationHistories([
+        $this->database->saveConversationHistories([
             [
                 'role' => 'user',
                 'content' => $userMessage,
@@ -171,11 +178,11 @@ class ChatGpt extends Discord
      * @param \Discord\Parts\Channel\Message $message
      * @return string
      */
-    protected function _setPersonality(Message $message): string
+    protected function setPersonality(Message $message): string
     {
         $personality = ltrim($message->content, self::FUNC_PREFIX_SET_PERSONARITY);
-        $this->_database->setPersonality($personality);
-        $this->_personality = $personality;
+        $this->database->setPersonality($personality);
+        $this->personality = $personality;
 
         return '設定完了しました。';
     }
@@ -184,9 +191,9 @@ class ChatGpt extends Discord
      * @param \Discord\Parts\Channel\Message $message
      * @return string
      */
-    protected function _resetConversationHistories(): string
+    protected function resetConversationHistories(): string
     {
-        $this->_database->resetConversationHistories();
+        $this->database->resetConversationHistories();
 
         return '文脈をリセットしました。';
     }
