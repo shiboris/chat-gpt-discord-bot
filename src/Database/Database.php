@@ -118,7 +118,7 @@ class Database extends SQLite3
 
         $conversationHistories = $conversationHistoriesTable
             ->orderByDesc('id')
-            ->limit(6)
+            ->limit(16)
             ->get()
             ->sortBy('id')
             ->all();

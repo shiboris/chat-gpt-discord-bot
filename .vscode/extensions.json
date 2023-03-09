@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-azuretools.vscode-docker",
+        "editorconfig.editorconfig",
+        "christian-kohler.path-intellisense",
+        "bmewburn.vscode-intelephense-client",
+        "mehedidracula.php-namespace-resolver",
+        "valeryanm.vscode-phpsab"
+    ]
+}

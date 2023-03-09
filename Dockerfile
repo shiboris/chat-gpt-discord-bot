@@ -1,5 +1,7 @@
 FROM php:8.1-cli
 
+WORKDIR /user/src/app
+
 RUN apt-get update && \
     apt-get install -y zip && \
     apt-get install -y unzip && \
@@ -9,5 +11,3 @@ RUN apt-get update && \
 
 COPY . /user/src/app
 COPY --from=composer /usr/bin/composer /usr/bin/composer
-
-WORKDIR /user/src/app

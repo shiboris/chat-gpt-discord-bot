@@ -10,29 +10,113 @@ use Discord\Parts\Channel\Message;
 use Discord\WebSockets\Event;
 use Exception;
 use Orhanerday\OpenAi\OpenAi;
-use SMB\Pemojine\Container;
-use SMB\Pemojine\Structure\Vendor\Common;
 
 /**
  * ChatGpt
  */
 class ChatGpt extends Discord
 {
-    protected const FUNC_TYPE_CALL_API = 'call_api';
-    protected const FUNC_TYPE_SET_PERSONARITY = 'set_personality';
-    protected const FUNC_TYPE_RESET = 'reset';
+    /**
+     * ChatGPT API をコールして、メッセージを受け取る
+     *
+     * @var string
+     */
+    protected const CALL_API = 'call_api';
 
-    protected const FUNC_PREFIX_CALL_API = 'ai ';
-    protected const FUNC_PREFIX_SET_PERSONARITY = 'ai set personality ';
-    protected const FUNC_PREFIX_RESET = 'ai reset';
+    /**
+     * ChatBot の人格を設定する
+     *
+     * @var string
+     */
+    protected const SET_PERSONARITY = 'set_personality';
 
+    /**
+     * 文脈をリセットする
+     *
+     * @var string
+     */
+    protected const RESET = 'reset';
+
+    /**
+     * ChatBot の動作をスタートする
+     *
+     * @var string
+     */
+    protected const START = 'start';
+
+    /**
+     * ChatBot の動作をストップする
+     *
+     * @var string
+     */
+    protected const STOP = 'stop';
+
+    /**
+     * 絵文字リアクションを使う
+     *
+     * @var string
+     */
+    protected const USE_EMOJI = 'use_emoji';
+
+    /**
+     * 絵文字リアクション使わない
+     *
+     * @var string
+     */
+    protected const UNUSE_EMOJI = 'unuse_emoji';
+
+    /**
+     * 各機能に対応する Prefix のセット
+     *
+     * @var array<string, string>
+     */
+    protected const PREFIX_SET = [
+        self::CALL_API        => 'ai ',
+        self::SET_PERSONARITY => 'ai set personality ',
+        self::RESET           => 'ai reset',
+        self::START           => 'ai start',
+        self::STOP            => 'ai stop',
+        self::USE_EMOJI       => 'ai use emoji',
+        self::UNUSE_EMOJI     => 'ai unuse emoji',
+    ];
+
+    /**
+     * OpenAI API との通信に使用するクラス
+     *
+     * @var OpenAi
+     */
     protected OpenAi $openAi;
+
+    /**
+     * データベースの操作に使用するクラス
+     *
+     * @var Database
+     */
     protected Database $database;
 
+    /**
+     * 現在の ChatBot の人格設定
+     *
+     * @var string
+     */
     protected string $personality;
 
     /**
-     * @inheritDoc
+     * ChatBot の起動状態
+     *
+     * @var bool
+     */
+    protected bool $isStart;
+
+    /**
+     * 絵文字リアクションを使うか
+     *
+     * @var bool
+     */
+    protected bool $useEmoji;
+
+    /**
+     * __construct
      */
     public function __construct(string $discordToken, string $chatGptToken)
     {
@@ -42,6 +126,8 @@ class ChatGpt extends Discord
         $this->database = new Database();
 
         $this->personality = $this->database->getPersonality();
+        $this->isStart = true;
+        $this->useEmoji = true;
 
         $this->on('ready', function (): void {
             $this->on(Event::MESSAGE_CREATE, function (Message $message): void {
@@ -57,6 +143,11 @@ class ChatGpt extends Discord
                     return;
                 }
 
+                // ボットを止めていたらスルー
+                if ($funcType !== self::START && !$this->isStart) {
+                    return;
+                }
+
                 $channel = $this->getChannel($message->channel_id);
 
                 // 実行可能な状態かチェック
@@ -66,24 +157,21 @@ class ChatGpt extends Discord
                     return;
                 }
 
-                // ランダムな絵文字をつける
-                $pemojine = Container::make(new Common());
-                $selectedGroup = $pemojine->randomFromGroup();
-                $message->react($selectedGroup->output());
-
                 // 入力中...を通知して機能ごとの処理を実行する
-                $channel->broadcastTyping()->done(
-                    function () use ($channel, $funcType, $message): void {
-                        $resultMessage = match ($funcType) {
-                            self::FUNC_TYPE_CALL_API => $this->callApi($message),
-                            self::FUNC_TYPE_SET_PERSONARITY => $this->setPersonality($message),
-                            self::FUNC_TYPE_RESET => $this->resetConversationHistories(),
-                            default => "想定外のコマンドが指定されました : {$funcType}"
-                        };
+                $channel->broadcastTyping()->done(function () use ($channel, $funcType, $message): void {
+                    $resultMessage = match ($funcType) {
+                        self::CALL_API => $this->callApi($message),
+                        self::SET_PERSONARITY => $this->setPersonality($message),
+                        self::RESET => $this->reset(),
+                        self::START => $this->start(),
+                        self::STOP => $this->stop(),
+                        self::USE_EMOJI => $this->useEmoji(),
+                        self::UNUSE_EMOJI => $this->unuseEmoji(),
+                        default => "想定外のコマンドが指定されました : {$funcType}"
+                    };
 
-                        $channel->sendMessage($resultMessage);
-                    }
-                );
+                    $channel->sendMessage($resultMessage);
+                });
             });
         });
     }
@@ -97,17 +185,24 @@ class ChatGpt extends Discord
         $funcType = null;
         $content = $message->content;
 
-        if (str_starts_with($content, self::FUNC_PREFIX_CALL_API)) {
-            $funcType = self::FUNC_TYPE_CALL_API;
-        }
-        if (str_starts_with($content, self::FUNC_PREFIX_SET_PERSONARITY)) {
-            $funcType = self::FUNC_TYPE_SET_PERSONARITY;
-        }
-        if (str_starts_with($content, self::FUNC_PREFIX_RESET)) {
-            $funcType = self::FUNC_TYPE_RESET;
+        foreach (self::PREFIX_SET as $type => $prefix) {
+            if (str_starts_with($content, $prefix)) {
+                $funcType = $type;
+            }
         }
 
         return $funcType;
+    }
+
+    /**
+     * @return string
+     */
+    protected function getMessage(Message $message, string $funcType): string
+    {
+        $prefix = self::PREFIX_SET[$funcType];
+        $personality = ltrim($message->content, $prefix);
+
+        return trim($personality);
     }
 
     /**
@@ -116,7 +211,7 @@ class ChatGpt extends Discord
      */
     protected function callApi(Message $message): string
     {
-        $userMessage = ltrim($message->content, self::FUNC_PREFIX_CALL_API);
+        $userMessage = $this->getMessage($message, self::CALL_API);
         $requestMessages = [];
 
         $conversationHistories = $this->database->getConversationHistories();
@@ -134,10 +229,34 @@ class ChatGpt extends Discord
             'content' => $userMessage,
         ];
 
+        $systemSetting = '';
+
+        if ($this->useEmoji) {
+            $systemSetting .= <<< END
+            以後の会話では、まずあなたの現在の感情を表す絵文字を1つを出力し、その後に会話を出力してください。
+            出力形式は以下のフォーマットとします。
+
+            <-------------------------------->
+            😊
+            <-------------------------------->
+            了解いたしました。それでははじめましょう。
+            <-------------------------------->
+
+            END;
+        }
+
         if ($this->personality) {
+            $systemSetting .= <<< END
+                あなたは以下の人格を演じてください。
+
+                $this->personality
+                END;
+        }
+
+        if (!empty($systemSetting)) {
             $requestMessages[] = [
                 'role' => 'system',
-                'content' => $this->personality,
+                'content' => $systemSetting,
             ];
         }
 
@@ -146,6 +265,7 @@ class ChatGpt extends Discord
                 'model' => 'gpt-3.5-turbo',
                 'messages' => $requestMessages,
                 'max_tokens' => 500,
+                'temperature' => 0.6,
             ]);
         } catch (Exception $e) {
             return "サーバーエラー : {$e->getMessage()}";
@@ -158,7 +278,23 @@ class ChatGpt extends Discord
             return "想定外のレスポンス : {$result}";
         }
 
-        $resultMessage = $result['choices'][0]['message']['content'];
+        $result = $result['choices'][0]['message']['content'];
+
+        if ($this->useEmoji) {
+            var_dump($result);
+            $splited = explode("<-------------------------------->", $result);
+            $splited = array_filter($splited);
+
+            if (count($splited) === 2) {
+                $emoji = array_shift($splited);
+                $emoji = trim($emoji);
+                if (preg_match('/[\x{10000}-\x{10FFFF}]/u', $emoji)) {
+                    $message->react($emoji);
+                }
+            }
+
+            $result = (string)end($splited);
+        }
 
         $this->database->saveConversationHistories([
             [
@@ -167,11 +303,11 @@ class ChatGpt extends Discord
             ],
             [
                 'role' => 'assistant',
-                'content' => $resultMessage,
+                'content' => $result,
             ],
         ]);
 
-        return (string)$resultMessage;
+        return $result;
     }
 
     /**
@@ -180,7 +316,7 @@ class ChatGpt extends Discord
      */
     protected function setPersonality(Message $message): string
     {
-        $personality = ltrim($message->content, self::FUNC_PREFIX_SET_PERSONARITY);
+        $personality = $this->getMessage($message, self::SET_PERSONARITY);
         $this->database->setPersonality($personality);
         $this->personality = $personality;
 
@@ -188,13 +324,52 @@ class ChatGpt extends Discord
     }
 
     /**
-     * @param \Discord\Parts\Channel\Message $message
      * @return string
      */
-    protected function resetConversationHistories(): string
+    protected function reset(): string
     {
         $this->database->resetConversationHistories();
 
         return '文脈をリセットしました。';
+    }
+
+    /**
+     * @return string
+     */
+    protected function start(): string
+    {
+        $this->isStart = true;
+
+        return 'ボットをスタートしました。';
+    }
+
+    /**
+     * @return string
+     */
+    protected function stop(): string
+    {
+        $this->isStart = false;
+
+        return 'ボットをストップしました。';
+    }
+
+    /**
+     * @return string
+     */
+    protected function useEmoji(): string
+    {
+        $this->useEmoji = true;
+
+        return '絵文字リアクションをスタートしました。';
+    }
+
+    /**
+     * @return string
+     */
+    protected function unuseEmoji(): string
+    {
+        $this->useEmoji = false;
+
+        return '絵文字リアクションをストップしました。';
     }
 }

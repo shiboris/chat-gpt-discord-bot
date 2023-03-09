@@ -1,4 +1,3 @@
 /vendor/
-chat_gpt.db
-.env
 chat_gpt.sqlite3
+.env

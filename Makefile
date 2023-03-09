@@ -1,23 +1,26 @@
-.PHONY: up install migration start all
+.PHONY: up down install migrate start all cs cbf
 
 CONTAINER_NAME_BOT=bot
 
 up:
 	docker compose up --build -d
 
-install:
-	docker-compose exec $(CONTAINER_NAME_BOT) sh -c "composer install"
+down:
+	docker compose down
 
-migration:
-	docker-compose exec $(CONTAINER_NAME_BOT) sh -c "vendor/bin/phinx migrate"
+install:
+	docker compose exec $(CONTAINER_NAME_BOT) sh -c "composer install"
+
+migrate:
+	docker compose exec $(CONTAINER_NAME_BOT) sh -c "vendor/bin/phinx migrate"
 
 start:
-	docker-compose exec $(CONTAINER_NAME_BOT) sh -c "php bot.php"
+	docker compose exec $(CONTAINER_NAME_BOT) sh -c "php bot.php"
 
 all:
 	make up
 	make install
-	make migration
+	make migrate
 	make start
 
 cs:

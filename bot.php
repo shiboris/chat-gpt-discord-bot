@@ -12,5 +12,9 @@ if (file_exists(__DIR__ . '/.env')) {
     $dotenv->load();
 }
 
+if (!isset($_ENV['DISCORD_BOT_TOKEN']) || !isset($_ENV['CHATGPT_API_TOKEN'])) {
+    throw new RuntimeException('Required environment variables are not set.');
+}
+
 $chatGpt = new ChatGpt($_ENV['DISCORD_BOT_TOKEN'], $_ENV['CHATGPT_API_TOKEN']);
 $chatGpt->run();
